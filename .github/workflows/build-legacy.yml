@@ -52,7 +52,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ./bin/spc-alpine-docker build "${EXTS_ALPINE}" --build-cli --with-upx-pack --debug
+          ./bin/spc-alpine-docker build "${EXTS_ALPINE}" --build-cli --debug
 
       - name: Package artifacts (${{ matrix.php_minor }})
         shell: bash
