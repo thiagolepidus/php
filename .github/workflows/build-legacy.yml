@@ -39,7 +39,7 @@ jobs:
           set -euo pipefail
           chmod +x bin/setup-runtime || true
           bin/setup-runtime
-          bin/composer install --no-interaction --no-progress
+          bin/composer install --no-interaction --no-progress --no-dev --prefer-dist
           chmod +x bin/spc
 
       - name: Cache SPC downloads
