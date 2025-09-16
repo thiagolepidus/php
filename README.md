@@ -1,3 +1,3 @@
-# PHP
+# php
 
-Compile and release PHP binaries using [crazywhalecc/static-php-cli](https://github.com/crazywhalecc/static-php-cli)
+This repository builds static PHP binaries using [static-php-cli](https://github.com/crazywhalecc/static-php-cli) and publishes them as GitHub Releases.

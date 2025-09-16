@@ -1,4 +1,4 @@
-name: Build static PHP (static-php-cli)
+name: Build legacy PHP (7.4, 8.0) with static-php-cli 2.3.6
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: static-php-all
+  group: static-php-legacy
   cancel-in-progress: false
 
 jobs:
@@ -15,21 +15,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php_minor: ["8.0", "8.1", "8.2", "8.3", "8.4"]
-        toolchain: ["gnu", "alpine"]
+        php_minor: ["7.4", "8.0"]
     runs-on: ubuntu-latest
     env:
-      EXTS_GNU: "apcu,bcmath,bz2,calendar,ctype,curl,dba,dom,event,exif,fileinfo,filter,ftp,gd,gmp,iconv,imagick,imap,intl,mbregex,mbstring,mysqli,mysqlnd,opcache,openssl,opentelemetry,pcntl,pdo,pdo_mysql,pgsql,phar,posix,protobuf,readline,redis,session,shmop,simplexml,soap,sockets,sodium,sqlite3,swoole,swoole-hook-mysql,swoole-hook-pgsql,swoole-hook-sqlite,sysvmsg,sysvsem,sysvshm,tokenizer,xml,xmlreader,xmlwriter,xsl,zip,zlib"
-      EXTS_ALPINE: "apcu,bcmath,bz2,calendar,ctype,curl,dba,dom,exif,fileinfo,filter,ftp,gd,gmp,iconv,intl,mbregex,mbstring,mysqli,mysqlnd,opcache,openssl,pcntl,pdo,pdo_mysql,pgsql,phar,posix,protobuf,readline,redis,session,shmop,simplexml,soap,sockets,sodium,sqlite3,swoole,sysvmsg,sysvsem,sysvshm,tokenizer,xml,xmlreader,xmlwriter,zip,zlib"
+      EXTS_ALPINE: "apcu,bcmath,bz2,calendar,ctype,curl,dba,dom,exif,fileinfo,filter,ftp,gd,gettext,gmp,iconv,intl,mbregex,mbstring,mysqli,mysqlnd,opcache,openssl,pcntl,pdo,pdo_mysql,pgsql,phar,posix,protobuf,readline,redis,session,shmop,simplexml,soap,sockets,sodium,sqlite3,swoole,sysvmsg,sysvsem,sysvshm,tokenizer,xml,xmlreader,xmlwriter,zip,zlib"
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Checkout static-php-cli
+      - name: Checkout static-php-cli v2.3.6
         uses: actions/checkout@v4
         with:
           repository: crazywhalecc/static-php-cli
+          ref: 2.3.6
           path: spc-src
           fetch-depth: 1
 
@@ -37,38 +36,25 @@ jobs:
         uses: actions/cache@v4
         with:
           path: spc-src/downloads
-          key: spc-downloads-${{ matrix.toolchain }}-${{ matrix.php_minor }}-v1
+          key: spc-downloads-legacy-${{ matrix.php_minor }}-v1
           restore-keys: |
-            spc-downloads-${{ matrix.toolchain }}-
+            spc-downloads-legacy-
 
-      - name: Select extensions for toolchain
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ "${{ matrix.toolchain }}" == "gnu" ]]; then
-            echo "EXTS=${EXTS_GNU}" >> "$GITHUB_ENV"
-          else
-            echo "EXTS=${EXTS_ALPINE}" >> "$GITHUB_ENV"
-          fi
-
-      - name: Download sources (${{ matrix.php_minor }} / ${{ matrix.toolchain }})
+      - name: Download sources (${{ matrix.php_minor }} / alpine)
         working-directory: spc-src
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${{ matrix.toolchain }}" == "gnu" ]]; then SPC=./bin/spc-gnu-docker; else SPC=./bin/spc-alpine-docker; fi
-          $SPC download --for-extensions="${EXTS}" --with-php="${{ matrix.php_minor }}" --prefer-pre-built --debug
+          ./bin/spc-alpine-docker download --for-extensions="${EXTS_ALPINE}" --with-php="${{ matrix.php_minor }}" --prefer-pre-built --debug
 
-      - name: Build CLI (${{ matrix.php_minor }} / ${{ matrix.toolchain }})
+      - name: Build CLI (${{ matrix.php_minor }} / alpine)
         working-directory: spc-src
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${{ matrix.toolchain }}" == "gnu" ]]; then SPC=./bin/spc-gnu-docker; else SPC=./bin/spc-alpine-docker; fi
-          $SPC build "${EXTS}" --build-cli --with-upx-pack --debug
+          ./bin/spc-alpine-docker build "${EXTS_ALPINE}" --build-cli --with-upx-pack --debug
 
-      - name: Package artifacts (${{ matrix.php_minor }} / ${{ matrix.toolchain }})
-        id: prep
+      - name: Package artifacts (${{ matrix.php_minor }})
         shell: bash
         run: |
           set -euo pipefail
@@ -78,15 +64,16 @@ jobs:
           mkdir -p dist
           OS=linux
           ARCH=x86_64
-          LIBC=${{ matrix.toolchain }}
+          LIBC=alpine
           NAME="php-${FULL_VER}-${OS}-${LIBC}-${ARCH}"
           cp "$BIN" "dist/${NAME}"
           chmod +x "dist/${NAME}"
           sha256sum "dist/${NAME}" | awk '{print $1}' > "dist/${NAME}.sha256"
+          printf "%s\n" "$FULL_VER" > "dist/FULL_VERSION.txt"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: static-php-${{ matrix.php_minor }}-${{ matrix.toolchain }}
+          name: static-php-legacy-${{ matrix.php_minor }}
           path: dist/*
           if-no-files-found: error
 
@@ -95,10 +82,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php_minor: ["8.0", "8.1", "8.2", "8.3", "8.4"]
+        php_minor: ["7.4", "8.0"]
     runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -106,8 +91,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          pattern: static-php-${{ matrix.php_minor }}-*
-          merge-multiple: true
+          name: static-php-legacy-${{ matrix.php_minor }}
           path: release
 
       - name: Build release notes (PHP changelog link)
@@ -128,10 +112,9 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: php-${{ matrix.php_minor }}
-          name: PHP ${{ matrix.php_minor }} latest
+          name: PHP ${{ matrix.php_minor }} latest (legacy)
           bodyFile: release/RELEASE_NOTES.md
           allowUpdates: true
           replacesArtifacts: true
           artifacts: release/*
           token: ${{ github.token }}
-
