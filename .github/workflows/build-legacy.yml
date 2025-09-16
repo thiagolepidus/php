@@ -40,19 +40,36 @@ jobs:
           restore-keys: |
             spc-downloads-legacy-
 
+      - name: Select extensions for minor
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ matrix.php_minor }}" == "7.4" ]]; then
+            IFS=',' read -ra arr <<< "$EXTS_ALPINE"
+            OUT=""
+            for e in "${arr[@]}"; do
+              if [[ "$e" != "opcache" ]]; then
+                if [[ -z "$OUT" ]]; then OUT="$e"; else OUT="$OUT,$e"; fi
+              fi
+            done
+            echo "EXTS=$OUT" >> "$GITHUB_ENV"
+          else
+            echo "EXTS=$EXTS_ALPINE" >> "$GITHUB_ENV"
+          fi
+
       - name: Download sources (${{ matrix.php_minor }} / alpine)
         working-directory: spc-src
         shell: bash
         run: |
           set -euo pipefail
-          ./bin/spc-alpine-docker download --for-extensions="${EXTS_ALPINE}" --with-php="${{ matrix.php_minor }}" --prefer-pre-built --debug
+          ./bin/spc-alpine-docker download --for-extensions="${EXTS}" --with-php="${{ matrix.php_minor }}" --prefer-pre-built --debug
 
       - name: Build CLI (${{ matrix.php_minor }} / alpine)
         working-directory: spc-src
         shell: bash
         run: |
           set -euo pipefail
-          ./bin/spc-alpine-docker build "${EXTS_ALPINE}" --build-cli --debug
+          ./bin/spc-alpine-docker build "${EXTS}" --build-cli --debug
 
       - name: Package artifacts (${{ matrix.php_minor }})
         shell: bash
