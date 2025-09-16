@@ -32,6 +32,16 @@ jobs:
           path: spc-src
           fetch-depth: 1
 
+      - name: Setup SPC runtime (PHP & Composer)
+        working-directory: spc-src
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x bin/setup-runtime || true
+          bin/setup-runtime
+          bin/composer install --no-interaction --no-progress
+          chmod +x bin/spc
+
       - name: Cache SPC downloads
         uses: actions/cache@v4
         with:
@@ -57,19 +67,20 @@ jobs:
             echo "EXTS=$EXTS_ALPINE" >> "$GITHUB_ENV"
           fi
 
-      - name: Download sources (${{ matrix.php_minor }} / alpine)
+      - name: Download sources (${{ matrix.php_minor }})
         working-directory: spc-src
         shell: bash
         run: |
           set -euo pipefail
-          ./bin/spc-alpine-docker download --for-extensions="${EXTS}" --with-php="${{ matrix.php_minor }}" --prefer-pre-built --debug
+          ./bin/spc doctor --auto-fix --debug || true
+          ./bin/spc download --for-extensions="${EXTS}" --with-php="${{ matrix.php_minor }}" --prefer-pre-built --debug
 
-      - name: Build CLI (${{ matrix.php_minor }} / alpine)
+      - name: Build CLI (${{ matrix.php_minor }})
         working-directory: spc-src
         shell: bash
         run: |
           set -euo pipefail
-          ./bin/spc-alpine-docker build "${EXTS}" --build-cli --debug
+          ./bin/spc build "${EXTS}" --build-cli --debug
 
       - name: Package artifacts (${{ matrix.php_minor }})
         shell: bash
@@ -81,7 +92,7 @@ jobs:
           mkdir -p dist
           OS=linux
           ARCH=x86_64
-          LIBC=alpine
+          LIBC=gnu
           NAME="php-${FULL_VER}-${OS}-${LIBC}-${ARCH}"
           cp "$BIN" "dist/${NAME}"
           chmod +x "dist/${NAME}"
