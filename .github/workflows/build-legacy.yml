@@ -58,7 +58,7 @@ jobs:
             IFS=',' read -ra arr <<< "$EXTS_ALPINE"
             OUT=""
             for e in "${arr[@]}"; do
-              if [[ "$e" != "opcache" ]]; then
+              if [[ "$e" != "opcache" && "$e" != "protobuf" ]]; then
                 if [[ -z "$OUT" ]]; then OUT="$e"; else OUT="$OUT,$e"; fi
               fi
             done
