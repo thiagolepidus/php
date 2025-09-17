@@ -94,6 +94,7 @@ jobs:
           cp "$BIN" "dist/${NAME}"
           chmod +x "dist/${NAME}"
           sha256sum "dist/${NAME}" | awk '{print $1}' > "dist/${NAME}.sha256"
+          printf "%s\n" "${EXTS}" > "dist/EXTENSIONS-${LIBC}.txt"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -129,17 +130,27 @@ jobs:
           FULL_VER=$(basename "$FIRST_ASSET" | sed -E 's/^php-([0-9]+\.[0-9]+\.[0-9]+)-.*/\1/')
           MAJOR=$(echo "$FULL_VER" | cut -d. -f1)
           CHANGELOG_URL="https://www.php.net/ChangeLog-${MAJOR}.php#${FULL_VER}"
+          EXTS_COMBINED=""
+          if ls release/EXTENSIONS-*.txt >/dev/null 2>&1; then
+            EXTS_COMBINED=$(cat release/EXTENSIONS-*.txt | tr ',' '\n' | sed 's/^\s*//;s/\s*$//' | sed '/^$/d' | sort -u | paste -sd, -)
+          fi
           {
             echo "PHP ${FULL_VER} changelog";
             echo "";
             echo "- Official changelog: ${CHANGELOG_URL}";
+            if [ -n "$EXTS_COMBINED" ]; then
+              echo "";
+              echo "Extensions:";
+              echo "";
+              echo "${EXTS_COMBINED}";
+            fi
           } > release/RELEASE_NOTES.md
 
       - name: Publish GitHub Release
         uses: ncipollo/release-action@v1
         with:
           tag: php-${{ matrix.php_minor }}
-          name: PHP ${{ matrix.php_minor }} latest
+          name: PHP ${{ matrix.php_minor }}
           bodyFile: release/RELEASE_NOTES.md
           allowUpdates: true
           replacesArtifacts: true
