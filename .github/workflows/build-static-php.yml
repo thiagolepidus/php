@@ -109,6 +109,7 @@ jobs:
       matrix:
         php_minor: ["8.1", "8.2", "8.3", "8.4"]
     runs-on: ubuntu-latest
+    if: always()
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -122,7 +123,19 @@ jobs:
           merge-multiple: true
           path: release
 
+      - name: Check for artifacts for this minor
+        id: have_assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ls release/php-* 1>/dev/null 2>&1; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build release notes (PHP changelog link)
+        if: steps.have_assets.outputs.found == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -145,6 +158,7 @@ jobs:
           } > release/RELEASE_NOTES.md
 
       - name: Publish GitHub Release
+        if: steps.have_assets.outputs.found == 'true'
         uses: ncipollo/release-action@v1
         with:
           tag: php-${{ matrix.php_minor }}
