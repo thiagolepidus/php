@@ -77,7 +77,7 @@ jobs:
           set -euo pipefail
           # Ensure -std=c++17 appears LAST in C++ compile commands
           # by appending via EXTRA_CXXFLAGS through SPC_CMD_PREFIX_PHP_MAKE.
-          echo "SPC_CMD_PREFIX_PHP_MAKE=env EXTRA_CXXFLAGS='-std=gnu++17 -std=c++17'" >> "$GITHUB_ENV"
+          echo "SPC_CMD_PREFIX_PHP_MAKE=env CXXFLAGS='-std=gnu++17 -std=c++17' EXTRA_CXXFLAGS='-std=gnu++17 -std=c++17' make" >> "$GITHUB_ENV"
 
       - name: Download sources (${{ matrix.php_minor }})
         working-directory: spc-src
