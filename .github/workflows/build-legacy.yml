@@ -59,10 +59,9 @@ jobs:
             OUT=""
             for e in "${arr[@]}"; do
               # Exclude extensions incompatible or failing on PHP 7.4 static builds
-              # - opcache: unsupported in our 7.4 static build path
+              # - opcache: problematic in this static 7.4 path
               # - protobuf: requires PHP >= 8.0
-              # - intl: ICU in toolchain needs newer C++ standard, conflicts with PHP 7.4 build flags
-              if [[ "$e" != "opcache" && "$e" != "protobuf" && "$e" != "intl" ]]; then
+              if [[ "$e" != "opcache" && "$e" != "protobuf" ]]; then
                 if [[ -z "$OUT" ]]; then OUT="$e"; else OUT="$OUT,$e"; fi
               fi
             done
@@ -70,6 +69,15 @@ jobs:
           else
             echo "EXTS=$EXTS_ALPINE" >> "$GITHUB_ENV"
           fi
+
+      - name: Force C++17 for PHP 7.4 build (intl/ICU)
+        if: matrix.php_minor == '7.4'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Ensure -std=c++17 appears LAST in C++ compile commands
+          # by appending via EXTRA_CXXFLAGS through SPC_CMD_PREFIX_PHP_MAKE.
+          echo "SPC_CMD_PREFIX_PHP_MAKE=env EXTRA_CXXFLAGS='-std=gnu++17 -std=c++17'" >> "$GITHUB_ENV"
 
       - name: Download sources (${{ matrix.php_minor }})
         working-directory: spc-src
