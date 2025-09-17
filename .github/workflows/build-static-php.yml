@@ -135,14 +135,12 @@ jobs:
             EXTS_COMBINED=$(cat release/EXTENSIONS-*.txt | tr ',' '\n' | sed 's/^\s*//;s/\s*$//' | sed '/^$/d' | sort -u | paste -sd, -)
           fi
           {
-            echo "PHP ${FULL_VER} changelog";
+            echo "PHP ${FULL_VER}";
             echo "";
             echo "- Official changelog: ${CHANGELOG_URL}";
             if [ -n "$EXTS_COMBINED" ]; then
               echo "";
-              echo "Extensions:";
-              echo "";
-              echo "${EXTS_COMBINED}";
+              echo "Compiled with static-php-cli (https://github.com/crazywhalecc/static-php-cli) including the extensions: ${EXTS_COMBINED}";
             fi
           } > release/RELEASE_NOTES.md
 
